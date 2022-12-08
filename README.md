@@ -13,6 +13,5 @@ This was a power that simply slept in the seed; a prototype
 Leaf and taproot and seed, as yet half-formed and colorless;
     Thus the dry kernel holds and protects the dormant life,
 Then it gushes, heaving up, trusting to milder moistures,
-    Lifts itself all at once out of the enveloping night." 
- - Johann Wolfgang Von Goethe, The metamorphosis of plants
+    Lifts itself all at once out of the enveloping night." - Johann Wolfgang Von Goethe, The metamorphosis of plants
 
