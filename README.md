@@ -1,2 +1,2 @@
 # plantcompdev
-Computational methods plant developmental biology
+Computational methods in plant developmental biology
