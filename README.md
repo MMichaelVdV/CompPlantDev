@@ -18,8 +18,12 @@ then it gushes, heaving up, trusting to milder moistures,
 
 ### Computational models of plant development and form
 https://doi.org/10.1111/j.1469-8137.2011.04009.x
+What kind of modelling techniques exist to model plant development?
 
 ### The metaphor of developmental landscapes (Waddington’s landscape)
 https://www.biologia.unipd.it/giuseppe.fusco/PDFs/2014%20Fusco%20et%20al%20OUP.pdf
+What developmental processes interested in?
 
+### Reconstructing developmental landscapes from observational data
+How can we reconstruct developmental processes from observational data?
 
