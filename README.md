@@ -22,7 +22,7 @@ What kind of modelling techniques exist to model plant development?
 
 ### The metaphor of developmental landscapes (Waddington’s landscape)
 https://www.biologia.unipd.it/giuseppe.fusco/PDFs/2014%20Fusco%20et%20al%20OUP.pdf
-What developmental processes interested in?
+What developmental processes are we interested in?
 
 ### Reconstructing developmental landscapes from observational data
 How can we reconstruct developmental processes from observational data?
