@@ -1,4 +1,4 @@
-# Computational methods in plant developmental biology
+## Computational methods in plant developmental biology
 
 <div align="center"> "I wish, lovely friend, that I were able to
     happily hand you at once the disentangling word! —   
@@ -16,5 +16,7 @@ then it gushes, heaving up, trusting to milder moistures,
     lifts itself all at once out of the enveloping night." 
 - Johann Wolfgang Von Goethe, The metamorphosis of plants </div>
 
+### The metaphor of developmental landscapes (Waddington’s landscape)
+https://www.biologia.unipd.it/giuseppe.fusco/PDFs/2014%20Fusco%20et%20al%20OUP.pdf
 
 
