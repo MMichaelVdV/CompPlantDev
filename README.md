@@ -16,6 +16,9 @@ then it gushes, heaving up, trusting to milder moistures,
     lifts itself all at once out of the enveloping night." 
 - Johann Wolfgang Von Goethe, The metamorphosis of plants </div>
 
+### Computational models of plant development and form
+https://doi.org/10.1111/j.1469-8137.2011.04009.x
+
 ### The metaphor of developmental landscapes (Waddington’s landscape)
 https://www.biologia.unipd.it/giuseppe.fusco/PDFs/2014%20Fusco%20et%20al%20OUP.pdf
 
