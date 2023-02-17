@@ -63,11 +63,11 @@ python_numpy <- import("numpy")
 
 # Introduction
 
-We will use the Seurat 'ecosystem' for our pre-processing workflow:
+We will use the Seurat 'ecosystem' in R for our preprocessing workflow:
 
-We next use the count matrix to create a Seurat object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. See: https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+We create a Seurat object from a count matrix (a big matrix storing all RNA transcript counts for every cell). The object serves as a container that contains both data (like the count matrix) and analysis results (like PCA or clustering results) for a single-cell dataset. See: https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
 
-Similar workflow (on the same dataset) in Python using Scanpy: https://training.galaxyproject.org/training-material/topics/single-cell/tutorials/scrna-plant/tutorial.html
+Ref: similar workflow (on the same dataset) in Python using Scanpy: https://training.galaxyproject.org/training-material/topics/single-cell/tutorials/scrna-plant/tutorial.html
 
 # Data
 
