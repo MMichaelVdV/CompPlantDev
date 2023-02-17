@@ -14,7 +14,7 @@ leaf and taproot and seed, as yet half-formed and colorless;
     thus the dry kernel holds and protects the dormant life,
 then it gushes, heaving up, trusting to milder moistures,
     lifts itself all at once out of the enveloping night." 
-- Johann Wolfgang Von Goethe, The metamorphosis of plants </div>
+- Johann Wolfgang Von Goethe, The metamorphosis of plants (1790) </div>
 
 ### Computational models of plant development and form
 https://doi.org/10.1111/j.1469-8137.2011.04009.x
