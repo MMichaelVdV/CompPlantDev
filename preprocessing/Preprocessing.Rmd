@@ -46,7 +46,7 @@ library("slingshot")
 library("tradeSeq")
 ```
 
-Python packages we package for PaCMAP (Pairwise Controlled Manifold Approximation)  (you can install these in the terminal (not console) in RStudio with 'pip install *package name*')
+Python packages for PaCMAP (Pairwise Controlled Manifold Approximation)  (you can install these in the terminal (not console) in RStudio with 'pip install *package name*')
 
 - pacmap, pandas and numpy
 
