@@ -1,0 +1,104 @@
+---
+title: 'Preprocessing'
+author: ''
+output:
+  pdf_document:
+    number_sections: yes
+    keep_tex: yes
+  html_document:
+    df_print: paged
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE, warning = FALSE, 
+                      message = FALSE, echo = FALSE, eval = TRUE, tidy = TRUE,
+                      fig.width = 6, fig.height = 3.5, purl = TRUE, 
+                      fig.show = "hold", fig.pos = "p")
+```
+
+R Packages we will need:
+
+```{r}
+install.packages("reticulate")
+install.packages("tidyverse")
+install.packages('Seurat')
+```
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("SingleCellExperiment")
+BiocManager::install("scater")
+BiocManager::install("destiny")
+BiocManager::install("slingshot")
+BiocManager::install("tradeSeq")
+```
+
+```{r}
+library("reticulate")
+library("SingleCellExperiment")
+library("scater")
+library("Seurat")
+library("tidyverse")
+library("destiny")
+library("slingshot")
+library("tradeSeq")
+```
+
+Python packages we package for PaCMAP (Pairwise Controlled Manifold Approximation)  (you can install these in the terminal (not console) in RStudio with 'pip install *package name*')
+
+- pacmap, pandas and numpy
+
+You can test if these packages are working by running the following code:
+
+```{r}
+library(reticulate)
+python_pandas <- import("pandas")
+python_pacmap <- import("pacmap")
+python_numpy <- import("numpy")
+```
+
+\tableofcontents
+
+# Introduction
+
+We will use the Seurat 'ecosystem' for our pre-processing workflow:
+
+We next use the count matrix to create a Seurat object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. See: https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+
+Similar workflow (on the same dataset) in Python using Scanpy: https://training.galaxyproject.org/training-material/topics/single-cell/tutorials/scrna-plant/tutorial.html
+
+# Data
+
+```{r}
+counts_wt <- read_csv("../data/Denyer2019/GSE123818_Root_single_cell_wt_datamatrix.csv.gz")
+counts_shr <- read_csv("../data/Denyer2019/GSE123818_Root_single_cell_shr_datamatrix.csv.gz")
+```
+
+```{r}
+geneNames_wt <- counts_wt$...1
+counts_wt <- counts_wt[-c(1)]
+rownames(counts_wt) <- geneNames_wt
+
+geneNames_shr <- counts_shr$...1
+counts_shr <- counts_shr[-c(1)]
+rownames(counts_shr) <- geneNames_shr
+```
+
+# QC metrics, data normalization, scaling, feature selection
+
+# Dimension reduction
+
+# Clustering
+
+# Finding differentially expressed features (cluster biomarkers)
+
+```{r}
+# tissue specific markers
+cluster_annot <- read_tsv("../data/Denjer2019/cluster_annotation.txt")
+```
+
+# Assigning cell type identity to clusters
+
+# Convert subclusters to SingleCellExperiment for trajectory analysis
