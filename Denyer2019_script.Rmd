@@ -1,0 +1,510 @@
+---
+title: "Denyer2019_script"
+author: "M_VdV"
+date: "2023-02-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+scanpy in R https://theislab.github.io/scanpy-in-R/
+
+```{r}
+suppressPackageStartupMessages({
+    library("reticulate")
+    library("ggplot2")
+    library("SingleCellExperiment")
+    library("scater")
+    library("Seurat")
+    library("tidyverse")
+    library("dbplyr")
+    library("patchwork")
+    library("slingshot")
+    library("RColorBrewer")
+    library("rgl")
+})
+```
+
+```{r}
+py_pkgs <- c(
+    "scanpy",
+    "python-igraph",
+    "louvain"
+)
+```
+
+```{r}
+#reticulate::py_install(py_pkgs)
+```
+
+```{python}
+import scanpy as sc
+```
+
+The following is based on a tutorial for scanpy (python), see: https://training.galaxyproject.org/training-material/topics/single-cell/tutorials/scrna-plant/tutorial.html
+
+## Reading in data
+
+```{r}
+counts_wt <- read_csv("../data/Denyer2019/GSE123818_Root_single_cell_wt_datamatrix.csv.gz")
+counts_shr <- read_csv("../data/Denyer2019/GSE123818_Root_single_cell_shr_datamatrix.csv.gz")
+```
+
+```{r}
+geneNames_wt <- counts_wt$...1
+counts_wt <- counts_wt[-c(1)]
+rownames(counts_wt) <- geneNames_wt
+
+geneNames_shr <- counts_shr$...1
+counts_shr <- counts_shr[-c(1)]
+rownames(counts_shr) <- geneNames_shr
+```
+
+
+Which are the cell barcodes? Rows or Columns?
+Which are the gene names? Rows or Columns?
+How many cells in the dataset?
+How many genes in the dataset?
+
+```{r}
+dim(counts_wt)
+dim(counts_shr)
+```
+```{r}
+dim(counts_wt)
+dim(counts_shr)
+```
+
+We will use the Seurat 'ecosystem' for our pre-processing workflow:
+
+We next use the count matrix to create a Seurat object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. See: https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+
+```{r}
+AT_root_WT <- CreateSeuratObject(counts = counts_wt, project = "AT_root_WT")
+AT_root_SHR <- CreateSeuratObject(counts = counts_shr, project = "AT_root_SHR")
+```
+
+```{r}
+AT_root_WT[c("AT1G01010", "AT1G01020", "AT1G09935"), 1:50]
+```
+Now that the count matrices are stored inside the seurat object, we can safely remove the original counts matrices from memory.
+
+```{r}
+rm(counts_wt)
+rm(counts_shr)
+```
+# Standard pre-processing workflow
+
+The steps below encompass the standard pre-processing workflow for scRNA-seq data in Seurat. These represent the selection and filtration of cells based on QC metrics, data normalization and scaling, and the detection of highly variable features.
+
+```{r}
+head(AT_root_WT@meta.data, 5)
+```
+
+```{r}
+head(AT_root_SHR@meta.data, 5)
+```
+
+In the example below, we visualize QC metrics, and use these to filter cells.
+
+    - We filter cells that have unique feature counts over 2,500 or less than 200
+    - We filter cells that have >5% mitochondrial counts
+
+```{r}
+AT_root_WT[["percent.mt"]] <- PercentageFeatureSet(AT_root_WT, pattern = "^MG")
+AT_root_WT[["percent.cp"]] <- PercentageFeatureSet(AT_root_WT, pattern = "^CG")
+```
+
+    
+```{r}
+VlnPlot(AT_root_WT, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
+```
+
+```{r}
+VlnPlot(AT_root_SHR, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
+```
+```{r}
+FeatureScatter(AT_root_WT, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+FeatureScatter(AT_root_SHR, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+```
+# Filtering
+
+```{r}
+#should store original data to raw
+AT_root_WT <- subset(AT_root_WT, subset = nFeature_RNA > 200 & nCount_RNA < 100000 & nFeature_RNA < 10000)
+AT_root_SHR <- subset(AT_root_SHR, subset = nFeature_RNA > 200 & nCount_RNA < 100000 & nFeature_RNA < 10000)             
+```
+
+```{r}
+dim(AT_root_SHR)
+dim(AT_root_WT)
+```
+
+```{r}
+FeatureScatter(AT_root_WT, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+FeatureScatter(AT_root_SHR, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+```
+# Normalization
+
+```{r}
+#visualize effect
+AT_root_WT <- NormalizeData(AT_root_WT, normalization.method = "LogNormalize", scale.factor = 10000)
+AT_root_SHR <- NormalizeData(AT_root_SHR, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+```{r}
+VlnPlot(AT_root_WT, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
+```
+
+# Identification of highly variable features (feature selection)
+
+```{r fig.align="center", echo = FALSE, fig.width =  12, fig.height= 8}
+AT_root_WT <- FindVariableFeatures(AT_root_WT, selection.method = "vst", nfeatures = 2000)
+
+# Identify the 10 most highly variable genes
+top10_WT <- head(VariableFeatures(AT_root_WT), 10)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(AT_root_WT)
+plot2 <- LabelPoints(plot = plot1, points = top10_WT, repel = TRUE)
+plot1 + plot2
+```
+```{r fig.align="center", echo = FALSE, fig.width =  12, fig.height= 8}
+AT_root_SHR <- FindVariableFeatures(AT_root_SHR, selection.method = "vst", nfeatures = 2000)
+
+# Identify the 10 most highly variable genes
+top10_SHR <- head(VariableFeatures(AT_root_SHR), 10)
+
+# plot variable features with and without labels
+plot3 <- VariableFeaturePlot(AT_root_SHR)
+plot4 <- LabelPoints(plot = plot3, points = top10_SHR, repel = TRUE)
+plot3 + plot4
+```
+
+```{r fig.align="center", echo = FALSE, fig.width =  12, fig.height= 8}
+plot2 + plot4
+```
+```{r}
+dim(AT_root_WT)
+dim(AT_root_SHR)
+```
+# Scaling
+
+```{r}
+genes_WT <- rownames(AT_root_WT)
+AT_root_WT <- ScaleData(AT_root_WT, features = genes_WT)
+```
+
+```{r}
+genes_SHR <- rownames(AT_root_SHR)
+AT_root_SHR <- ScaleData(AT_root_SHR, features = genes_SHR)
+```
+# Linear dimensional reduction
+
+```{r}
+AT_root_WT <- RunPCA(AT_root_WT, features = VariableFeatures(object = AT_root_WT))
+AT_root_SHR <- RunPCA(AT_root_SHR, features = VariableFeatures(object = AT_root_SHR))
+```
+```{r fig.align="center", echo = FALSE, fig.width =  8, fig.height= 8}
+p5 <- VizDimLoadings(AT_root_WT, dims = 1, reduction = "pca", nfeatures = 10)
+p6 <- VizDimLoadings(AT_root_SHR, dims = 1, reduction = "pca", nfeatures = 10)
+p5 + p6
+```
+
+```{r fig.align="center", echo = FALSE, fig.width =  8, fig.height= 8}
+p7 <- VizDimLoadings(AT_root_WT, dims = 2, reduction = "pca", nfeatures = 10)
+p8 <- VizDimLoadings(AT_root_SHR, dims = 2, reduction = "pca", nfeatures = 10)
+p7 + p8
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 10, fig.height= 5}
+p9 <- DimPlot(AT_root_WT, reduction = "pca")
+p10 <- DimPlot(AT_root_SHR, reduction = "pca")
+p9 + p10
+```
+
+```{r}
+ElbowPlot(AT_root_WT)
+ElbowPlot(AT_root_SHR)
+```
+
+
+```{r fig.align="center", echo = FALSE, fig.width = 10, fig.height= 5}
+DimHeatmap(AT_root_WT, dims = 1:3, balanced = T, nfeatures = 100)
+DimHeatmap(AT_root_SHR, dims = 1:3, balanced = T, nfeatures = 100)
+```
+```{r}
+FeaturePlot(AT_root_WT, features = 'AT3G56070', reduction = "pca")
+FeaturePlot(AT_root_WT, features = 'AT3G09925', reduction = "pca")
+```
+
+
+# Clustering
+
+```{r}
+AT_root_WT <- FindNeighbors(AT_root_WT, dims = 1:30)
+AT_root_WT <- FindClusters(AT_root_WT, resolution = 0.5)
+```
+
+```{r}
+head(Idents(AT_root_WT), 5)
+```
+```{r}
+AT_root_SHR <- FindNeighbors(AT_root_SHR, dims = 1:30)
+AT_root_SHR <- FindClusters(AT_root_SHR, resolution = 0.5)
+```
+
+```{r}
+head(Idents(AT_root_SHR), 5)
+```
+# Non-linear dimensional reduction
+
+```{r}
+#reticulate::py_install(packages ='umap-learn')
+```
+
+```{r}
+AT_root_WT <- RunTSNE(AT_root_WT, dims = 1:30)
+DimPlot(AT_root_WT, reduction = "tsne")
+```
+
+
+```{r}
+AT_root_WT <- RunUMAP(AT_root_WT, dims = 1:30)
+DimPlot(AT_root_WT, reduction = "umap")
+```
+
+```{r}
+AT_root_SHR <- RunUMAP(AT_root_SHR, dims = 1:30)
+DimPlot(AT_root_SHR, reduction = "umap")
+```
+```{r}
+FeaturePlot(AT_root_WT, features = 'AT3G56070')
+FeaturePlot(AT_root_WT, features = 'AT3G09925')
+```
+
+
+# Other dimred methods 
+
+https://milescsmith.github.io/ReductionWrappers/index.html
+
+```{r}
+#devtools::install_github("milescsmith/s2a")
+#devtools::install_github("milescsmith/ReductionWrappers")
+#library("ReductionWrappers")
+```
+```{r}
+library(reticulate)
+python_pandas <- import("pandas")
+python_pacmap <- import("pacmap")
+python_numpy <- import("numpy")
+```
+
+```{r}
+counts_wt <- as.matrix(AT_root_WT@assays[["RNA"]]@counts)
+```
+
+```{r}
+AT_root_WT_pandas <- reticulate::r_to_py(t(scale(counts_wt)))
+nparray <- AT_root_WT_pandas$real
+nparray <- nparray$astype(python_numpy$float)
+embedding <- python_pacmap$PaCMAP(n_neighbors=NULL, MN_ratio=0.5, FP_ratio=2.0) 
+X_transformed <- embedding$fit_transform(nparray, init="pca")
+AT_root_WT_transformed <- data.frame(X_transformed)
+```
+
+```{r}
+AT_root_WT_transformed <- as.matrix(AT_root_WT_transformed)
+colnames(AT_root_WT_transformed) <- paste0("pacmap_", 1:2)
+rownames(AT_root_WT_transformed) <- colnames(counts_wt)
+```
+
+#Storing a custom dimensionality reduction calculation
+
+https://satijalab.org/seurat/archive/v3.0/dim_reduction_vignette.html
+
+```{r}
+AT_root_WT[["pacmap"]] <- CreateDimReducObject(embeddings = AT_root_WT_transformed, key = "pacmap_", assay = DefaultAssay(AT_root_WT))
+```
+
+```{r}
+plot(AT_root_WT@reductions[["pacmap"]]@cell.embeddings)
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 8, fig.height= 5}
+p_11 <- DimPlot(AT_root_WT, reduction = "pca")
+p_22 <- DimPlot(AT_root_WT, reduction = "tsne")
+p_33 <- DimPlot(AT_root_WT, reduction = "umap")
+p_66 <- DimPlot(AT_root_WT, reduction = "pacmap", dims = c(1, 2))
+p_11 + p_22 + p_33 + p_66
+```
+```{r}
+FeaturePlot(AT_root_WT, features = 'AT3G56070', reduction = "pacmap")
+FeaturePlot(AT_root_WT, features = 'AT3G09925', reduction = "pacmap")
+```
+
+
+# Finding differentially expressed features (cluster biomarkers)
+
+```{r}
+cluster1.markers <- FindMarkers(AT_root_WT, ident.1 = 1, min.pct = 0.25)
+head(cluster1.markers, n = 5)
+```
+```{r}
+#read in tissue specific markers
+cluster_annot <- read_tsv("../data/Denyer2019/cluster_annotation.txt")
+```
+
+
+```{r}
+AT_root_WT.markers <- FindAllMarkers(AT_root_WT, only.pos = FALSE, logfc.threshold = 0.25, min.pct = 0.1, test.use = 'bimod') 
+#min.pct = 0.25
+```
+```{r}
+AT_root_WT.markers_annot <- merge(AT_root_WT.markers, cluster_annot, by = "gene")
+final_markers <- AT_root_WT.markers_annot %>% group_by(cluster) %>% slice_max(n = 10, order_by = avg_log2FC)
+final_markers
+```
+
+
+```{r fig.align="center", echo = FALSE, fig.width = 8, fig.height= 15}
+p_110 <- FeaturePlot(AT_root_WT, reduction = "pca", features = "AT3G54220")
+p_220 <- FeaturePlot(AT_root_WT, reduction = "tsne", features = "AT3G54220")
+p_330 <- FeaturePlot(AT_root_WT, reduction = "umap", features = "AT3G54220")
+p_660 <- FeaturePlot(AT_root_WT, reduction = "pacmap", dims = c(1, 2), features = "AT3G54220")
+p_110 + p_220 + p_330 + p_660
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 16, fig.height= 32}
+VlnPlot(AT_root_WT, features = c(final_markers$gene))
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 14, fig.height= 32}
+FeaturePlot(AT_root_WT, features = c(final_markers$gene))
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 12, fig.height= 16}
+AT_root_WT.markers %>%
+    group_by(cluster) %>%
+    top_n(n = 4, wt = avg_log2FC) -> top10
+DoHeatmap(AT_root_WT, features = top10$gene) + NoLegend()
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 15, fig.height= 7}
+final_markers$tissue <- as.factor(final_markers$tissue)
+final_markers <- final_markers[order(final_markers$tissue, decreasing=FALSE),]
+
+p10 <- DotPlot(object = AT_root_WT, features = unique(final_markers$gene))
+
+library("scales")
+
+x_cols = hue_pal(h = c(90, 180))(length(levels(final_markers$tissue)))
+names(x_cols) = levels(final_markers$tissue)
+p10 + theme(axis.text.x = element_text(angle = 90)) + theme(axis.text.x = element_text(colour= x_cols))
+```
+
+```{r fig.align="center", echo = FALSE, fig.width = 12, fig.height= 15}
+library('SCpubr')
+SCpubr::do_DotPlot(sample = AT_root_WT, features = unique(final_markers$gene), 
+                         cluster.idents = TRUE, 
+                         plot.title = "Clustered", 
+                         flip = TRUE,
+                         rotate_x_axis_labels = 45)
+```
+
+
+More on dotplots: https://davemcg.github.io/post/lets-plot-scrna-dotplots/
+https://enblacar.github.io/SCpubr-book/09-DotPlots.html
+https://asc-seurat.readthedocs.io/en/latest/Advanced_plots.html
+
+
+
+# Assigning cell type identity to clusters
+
+```{r}
+#3->atrichoblast, 5->trichoblast, 10->endodermis, 11->cortex 
+new.cluster.ids <- c("0", "1", "2", "3", "4", "trichoblast",
+    "phloem", "7", "xylem", "9", "endodermis", "cortex", "12", "13")
+names(new.cluster.ids) <- levels(AT_root_WT)
+AT_root_WT <- RenameIdents(AT_root_WT, new.cluster.ids)
+DimPlot(AT_root_WT, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+Compare https://bioit3.irc.ugent.be/plant-sc-atlas/root
+https://www.arabidopsis.org/
+
+# Trajectory inference on subclusters (compare to Wedrich et al)
+
+```{r}
+AT_root_WT_trichoblast <- subset(AT_root_WT, idents = c("trichoblast"))
+```
+
+```{r}
+DimPlot(AT_root_WT_trichoblast, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+https://satijalab.org/seurat/archive/v3.1/conversion_vignette.html
+
+```{r}
+library(SingleCellExperiment)
+library(slingshot)
+```
+```{r}
+sce <- as.SingleCellExperiment(AT_root_WT_trichoblast)
+```
+
+```{r}
+#set.seed(5252)
+pca_data <- prcomp((t(counts(sce))), scale. = FALSE)
+
+library(umap)
+umap_data = umap(t(counts(sce))) 
+
+library(destiny)
+dmap_data <- DiffusionMap(sce, n_eigs = 20)
+
+reducedDims(sce) <- list(PCA=pca_data$x[,1:3], UMAP=umap_data$layout, DMAP=dmap_data@eigenvectors)
+```
+
+```{r}
+plot(reducedDims(sce)$PCA, asp = 1, pch = 16)
+plot(reducedDims(sce)$UMAP, asp = 1, pch = 16)
+plot(reducedDims(sce)$DMAP, asp = 1, pch = 16)
+```
+```{r}
+screeplot(pca_data, type = "lines")
+plot(eigenvalues(dmap_data), ylim = 0:1, pch = 20, xlab = 'Diffusion component (DC)', ylab = 'Eigenvalue')
+```
+```{r}
+sce <- slingshot(sce, reducedDim = 'PCA')
+```
+
+```{r plotSlingshot, echo = FALSE, fig.width =  8}
+layout(matrix(c(1, 1, 2, 3), 2))
+par(mar = c(4.5, 4, 1, 1))
+plot(reducedDims(sce)$PCA, asp = 1, pch = 16, xlab = "PCA-1", ylab = "PCA-2",
+  col = hcl.colors(100, alpha = .5)[cut(sce$slingPseudotime_1, breaks = 100)])
+lines(SlingshotDataSet(sce))
+# Pseudotime densities (by spatial)
+ds <- density(slingPseudotime(sce))
+xlim <- ds$x
+ylim <- ds$y
+plot(xlim, ylim, col = "white", xlab = "Pseudotime", ylab = "")
+polygon(c(min(ds$x), ds$x, max(ds$x)), c(0, ds$y, 0),
+  col = alpha(brewer.pal(4, "Set1")[3], alpha = .5))
+polygon(c(min(ds$x), ds$x, max(ds$x)), c(0, ds$y, 0),
+        col = alpha(brewer.pal(4, "Set1")[2], alpha = .5))
+
+plot(reducedDims(sce)$PCA, col = brewer.pal(9,'Set1')[sce$kmeans], pch=16, asp = 1)
+lines(SlingshotDataSet(sce), lwd=2, type = 'lineages', col = 'black')
+
+layout(1)
+par(mar = c(5, 4, 4, 2) + .1)
+```
+
+```{r}
+plot3d(reducedDims(sce)$PCA, asp = 1, pch = 16, xlab = "PCA-1", ylab = "PCA-2", zlab = "PCA-3",
+  col = hcl.colors(100, alpha = .5)[cut(sce$slingPseudotime_1, breaks = 100)])
+plot3d.SlingshotDataSet(sce, add = TRUE)
+```
