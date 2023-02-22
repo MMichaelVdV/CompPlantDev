@@ -1,0 +1,102 @@
+gene	tissue
+AT1G66470	early root hair
+AT3G09330	Trichoblast
+AT4G04760	Trichoblast
+AT3G54580	Trichoblast
+AT1G54940	Trichoblast
+AT1G48930	Trichoblast
+AT1G69240	Trichoblast
+AT5G49270	Trichoblast
+AT1G12560	Trichoblast
+AT3G62680	Trichoblast
+AT4G00680	Trichoblast
+AT4G40090	Trichoblast
+AT5G65160	Trichoblast
+AT4G34580	mature root hair
+AT1G09200	Atrichoblast
+AT2G40205	Atrichoblast
+AT2G43480	Atrichoblast
+AT1G28290	Atrichoblast
+AT1G76620	Atrichoblast
+AT4G00730	Atrichoblast
+AT1G33750	Atrichoblast
+AT1G79840	Atrichoblast
+AT2G37260	Atrichoblast
+AT5G66800	Atrichoblast
+AT5G14750	Atrichoblast
+AT1G65310	Atrichoblast
+AT4G25250	Atrichoblast
+AT1G31950	Atrichoblast
+AT4G15290	late non hair?
+AT5G54370	columella
+AT1G09750	Cortex
+AT5G64620	Cortex
+AT3G26300	Cortex
+AT1G62510	Cortex
+AT5G55250	Cortex
+AT5G18840	Cortex
+AT3G21670	Cortex
+AT2G14900	Meristem Endocortex
+AT5G45210	Meristem Endocortex
+AT1G16390	Endodermis
+AT1G61590	Endodermis
+AT2G40160	Endodermis
+AT2G48130	Endodermis
+AT3G22620	Endodermis
+AT4G11290	Endodermis
+AT1G05260	Endodermis
+AT3G54220	Endodermis
+AT4G17215	Endodermis
+AT3G55230	Endodermis
+AT1G44970	Endodermis
+AT2G15300	Endodermis
+AT3G11550	Mature endodermis
+AT2G21100	Mature endodermis
+AT2G27370	Mature endodermis
+AT2G02130	Vaculature and Columella
+AT3G59370	Vaculature and Columella
+AT1G70940	Vasculature and columella
+AT1G20850	Xylem
+AT3G08500	Xylem
+AT4G35350	Xylem
+AT5G12870	Xylem
+AT5G15630	Xylem
+AT3G10080	Xylem
+AT5G02640	Xylem
+AT1G71930	Xylem
+AT4G36160	Xylem
+AT1G68810	Xylem
+AT4G32880	Xylem
+AT2G18800	Xylem Pole Pericycle
+AT5G52470	Xylem Pole Pericycle
+AT2G15310	Phloem Companion
+AT3G03505	Phloem Companion
+AT1G79430	Phloem Companion
+AT1G35910	Phloem Pole Pericycle
+AT4G23410	Phloem Pole Pericycle
+AT3G48970	Phloem/xylem
+AT4G14650	Phloem/xylem
+AT5G48070	Stele
+AT1G22710	Stele
+AT4G36710	Stele
+AT4G23800	Stele
+AT5G37660	Stele
+AT4G21310	Stele
+AT1G11190	cell death marker
+AT1G26820	cell death marker
+AT3G45010	cell death marker
+AT4G18425	cell death marker
+AT5G50260	cell death marker
+AT2G14095	cell death marker
+AT1G79580	root cap specific NAC TF
+AT4G04460	root cap cell death marker
+AT2G32610	early non hair/lateral root cap
+AT3G11260	Quiescent Center
+AT1G49110	Quiescent Center
+AT2G03830	Quiescent Center
+AT3G26120	Quiescent Center
+AT5G17430	Quiescent Center
+AT5G23780	Quiescent Center
+AT5G60810	Quiescent Center
+AT1G68640	Quiescent Center
+AT3G20840	Quiescent Center
