@@ -1,0 +1,47 @@
+gene	tissue
+AT3G54220	Endodermis
+AT5G14750	LRC + Atrichoblast
+AT1G79430	Phloem
+AT1G62510	Cortex
+AT3G26120	Quiescent Center
+AT4G13390	Trichoblast
+AT2G18380	Phloem Sieve Element
+AT1G62500	Cortex
+AT5G49270	Trichoblast
+AT1G33280	Columella (1st Outer Layer) + LRC (1st +2nd Outer Layer)
+AT4G10350	Columella (1st Outer Layer) + LRC (1st Outer Layer)
+AT1G79580	Columella + LRC
+AT5G57620	Endodermis
+AT1G79840	Atrichoblast
+AT3G20880	Quiescent Center
+AT5G58010	Trichoblast
+AT2G22850	Phloem; Phloem Pole Pericycle
+AT3G25710	Protoxylem
+AT5G60810	Quiescent Center
+AT1G66470	Trichoblast
+AT5G37800	Trichoblast
+AT5G62940	Phloem Sieve Element
+AT3G61930	Distal Columella
+AT2G04025	Proximal Columella
+AT3G28540	Columella (1-3th Outer Layer)
+AT5G48130	Columella (1-4th Outer Layer) + LRC (3 Vertical Layers from Columella)
+AT1G17400	Columella (1-5th Outer Layer)
+AT2G40260	Cortex
+AT2G29330	Cortex + Endodermis
+AT3G56220	Cortex + Endodermis
+AT1G16390	Endodermis
+AT1G30750	Endodermis
+AT4G16270	Endodermis
+AT5G46600	Endodermis
+AT5G19530	Metaxylem
+AT2G31310	Pericycle Initials
+AT4G36410	Phloem
+AT5G04080	Phloem
+AT1G04240	Procambium + Xylem
+AT1G71050	Procambium + Xylem
+AT1G71930	Protoxylem
+AT4G18780	Protoxylem
+AT3G55550	Quiescent Center + Columella
+AT3G60650	Quiescent Center + Columella
+AT2G36120	Xylem Pole Pericycle
+AT4G30450	Xylem Pole Pericycle
