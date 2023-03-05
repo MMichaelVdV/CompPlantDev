@@ -1,3 +1,5 @@
+#Starts from a set of genes that is differentially expressed for a specific cluster
+
 ```{r}
 AT_root_WT.markers_cl6 <- AT_root_WT.markers %>% filter(AT_root_WT.markers$cluster == "6")
 AT_root_WT.markers_cl6 <- AT_root_WT.markers_cl6 %>% filter(AT_root_WT.markers_cl6$p_val_adj < 0.01)
