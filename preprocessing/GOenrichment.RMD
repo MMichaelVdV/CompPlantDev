@@ -1,0 +1,98 @@
+```{r}
+AT_root_WT.markers_cl6 <- AT_root_WT.markers %>% filter(AT_root_WT.markers$cluster == "6")
+AT_root_WT.markers_cl6 <- AT_root_WT.markers_cl6 %>% filter(AT_root_WT.markers_cl6$p_val_adj < 0.01)
+AT_root_WT.markers_cl6_ <- data.frame(AT_root_WT.markers_cl6$gene)
+#write_tsv(unique(AT_root_WT.markers_cl6_), "AT_root_WT.markers_cl6_.tsv")
+```
+
+```{r}
+library(goseq)
+```
+
+```{r}
+assayed.genes <- rownames(AT_root_WT)
+de.genes <- AT_root_WT.markers_cl6_$AT_root_WT.markers_cl6.gene
+```
+
+```{r}
+gene.vector <- as.integer(assayed.genes %in% de.genes)
+names(gene.vector) <- assayed.genes
+head(gene.vector)
+```
+
+```{r}
+supportedOrganisms()
+```
+```{r}
+countbias <- rowMeans(AT_root_WT)
+#countbias <- countbias + abs(min(AT_root_WT))
+length(countbias)
+head(countbias)
+min(countbias)
+```
+
+```{r}
+pwf=nullp(gene.vector,"Arabidopsis", bias.data = countbias)
+head(pwf)
+```
+
+```{r}
+plotPWF(pwf, binsize = 200)
+```
+
+```{r}
+#BiocManager::install("org.At.tair.db")
+```
+```{r}
+#BiocManager::install("biomaRt")
+```
+```{r}
+library("biomaRt")
+listMarts(host="plants.ensembl.org")
+listDatasets(useMart(biomart="plants_mart",host="plants.ensembl.org"))
+```
+```{r}
+#https://www.seqanswers.com/forum/applications-forums/rna-sequencing/42639-goseq-issue-couldn-t-grab-go-categories-automatically
+#https://support.bioconductor.org/p/75424/
+ensembl = useMart(biomart="plants_mart", host="plants.ensembl.org", dataset = "athaliana_eg_gene")
+groups=getBM(attributes=c("go_id", "name_1006", "namespace_1003", "ensembl_gene_id"), filters="ensembl_gene_id",value=names(gene.vector),mart=ensembl)
+```
+```{r}
+groups_bp <- groups %>% filter(groups$namespace_1003 == "biological_process")
+```
+
+
+```{r}
+go <- goseq(pwf, gene2cat=groups_bp)
+go.nobias <- goseq(pwf, gene2cat=groups_bp, method="Hypergeometric")
+```
+
+
+```{r}
+go$over_represented_qvalue <- p.adjust(go$over_represented_pvalue, method="BH")
+#enriched_GO <- go$category[p.adjust(go$over_represented_pvalue, method="BH")<.05]
+#enriched_GO
+
+go.nobias$over_represented_qvalue <- p.adjust(go.nobias$over_represented_pvalue, method="BH")
+#enriched_GO.nobias <- go.nobias$category[p.adjust(go.nobias$over_represented_pvalue, method="BH")<.05]
+#enriched_GO.nobias
+```
+
+```{r}
+goseq_results <- dplyr::select(go, category, over_represented_qvalue, numDEInCat, numInCat)
+goseq_results.nobias <- dplyr::select(go.nobias, category, over_represented_qvalue, numDEInCat, numInCat)
+```
+
+```{r}
+go_names <- data.frame(groups_bp$go_id, groups_bp$name_1006)
+```
+
+
+```{r}
+goseq_results <- merge(goseq_results, go_names, by.x = "category", by.y = "groups_bp.go_id")
+goseq_results.nobias <- merge(goseq_results.nobias, go_names, by.x = "category", by.y = "groups_bp.go_id")
+goseq_results <- unique(goseq_results[order(goseq_results$over_represented_qvalue, decreasing=FALSE),])
+goseq_results.nobias <- unique(goseq_results.nobias[order(goseq_results.nobias$over_represented_qvalue, decreasing=FALSE),])
+head(goseq_results)
+head(goseq_results.nobias)
+```
