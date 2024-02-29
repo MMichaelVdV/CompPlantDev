@@ -1,0 +1,154 @@
+---
+title: 'Cell cycle and ploidy annotation'
+author: 'WD'
+output:
+  pdf_document:
+    number_sections: yes
+    keep_tex: yes
+  html_document:
+    df_print: paged
+bibliography: references.bib
+---
+
+```{r echo=FALSE}
+library("SingleCellExperiment")
+library("Seurat")
+library("SeuratDisk")
+library("tidyverse")
+library("gridExtra")
+```
+
+```{r include=FALSE}
+denyer <- LoadH5Seurat("../intermediate_files/denyer_wt_sctransform_annotated.h5seurat")
+```
+
+# Annotate ploidy
+
+```{r}
+#extract matrix of expression values
+rc <- as.matrix(denyer@assays$RNA@data)
+```
+
+```{r}
+# Merge the reference expression profile with the normalized expression matrix of our sample  
+merge.rownames <- function (x,y){
+  dat <- merge(x = x, y = y, by = "row.names")
+  rownames(dat) <- dat$Row.names
+  dat <- dat[,-1]
+  return(dat)
+}
+
+load(file="../data/Shahan2022/endo_exp.RD")
+ploidy <- Reduce(merge.rownames, list(endo_exp,rc))
+```
+
+```{r}
+# Prepare customized label name (optional)
+ploidy_label=c("2C", "4C", "8C", "16C")
+
+ploidy[,1:10]
+```
+
+
+```{r}
+# Calculating the correlation coefficient of each cell to each reference expression profile and annotate the cell as the label that it has the highest correlation coefficient with.  
+ploidy_stat <- suppressWarnings(sapply(5:ncol(ploidy),
+                                       function(i)
+                                         sapply(1:4,
+                                                function(j)
+                                                  cor.test(ploidy[, i], ploidy[, j], method = "pearson")[c(3, 4)])))
+
+ploidy_cor <- ploidy_stat[seq(2, nrow(ploidy_stat), 2), ]
+ploidy_pvalue <- ploidy_stat[seq(1, nrow(ploidy_stat) - 1, 2), ]
+
+ploidy_max <-
+  sapply(1:(ncol(ploidy) - 4), function(i)
+    max(as.numeric(ploidy_cor[, i])))
+
+ploidy_ident <-
+  sapply(1:(ncol(ploidy) - 4), function(i)
+    ploidy_label[which(as.numeric(ploidy_cor[, i]) == max(as.numeric(ploidy_cor[, i])))])
+
+ploidy_maxp <-
+  sapply(1:(ncol(ploidy) - 4), function(i)
+    as.numeric(ploidy_pvalue[, i])[which(as.numeric(ploidy_cor[, i]) == max(as.numeric(ploidy_cor[, i])))])
+
+names(ploidy_max) <- ploidy_ident
+```
+
+
+```{r}
+# Store the annotation, correlation coefficient and the p-value in Seurat object
+denyer_wt@meta.data$ploidy.ID.P <- as.character(ploidy_ident)
+denyer_wt@meta.data$ploidy.cor.P <- ploidy_max
+denyer_wt@meta.data$ploidy.pvalue.p <- ploidy_maxp
+
+# In case there is a cell with insufficient info for annotation, label them as unknown
+denyer_wt@meta.data$ploidy.ID.P[which(denyer_wt@meta.data$ploidy.ID.P=="character(0)")]="unknown"
+```
+
+```{r}
+options(repr.plot.width=10, repr.plot.height=8)
+order <- c("2C","4C","8C","16C","unknown")
+palette <- c("#DCEDC8","#42B3D5","#FDEA6F","#CF4F29","#cccccc")
+
+denyer$ploidy.ID.P <- factor(denyer$ploidy.ID.P, levels=order[sort(match(unique(denyer$ploidy.ID.P), order))])
+color <- palette
+
+ploidyplot <- DimPlot(denyer, group.by="ploidy.ID.P", cols=color) + labs(x = "", y = "", title = "Ploidy levels")
+```
+
+
+# Annotate growth phase
+
+```{r}
+load(file="../data/Shahan2022/Root_bulk_arabidopsis_curated.RD")
+```
+
+
+```{r}
+time <- Reduce(merge.rownames, list(time,rc))
+```
+
+```{r}
+time_label=c("Elongation", "Maturation", "Meristem")
+```
+
+```{r}
+# Calculating the correlation coefficient of each cell to each reference expression profile and annotate the cell as the label that it has the highest correlation coefficient with.  
+time_stat <- suppressWarnings(
+  sapply(4:ncol(time), function(i) sapply(1:3, function(j) cor.test(time[,i],time[,j],method = "pearson")[c(3,4)]))
+  )
+
+time_cor <- time_stat[seq(2,nrow(time_stat),2),]
+time_pvalue <- time_stat[seq(1,nrow(time_stat)-1,2),]
+time_max <- sapply(1:(ncol(time)-3), function(i) max(as.numeric(time_cor[,i])))
+time_ident <- sapply(1:(ncol(time)-3), function(i) time_label[which(as.numeric(time_cor[,i])==max(as.numeric(time_cor[,i])))])
+time_maxp <- sapply(1:(ncol(time)-3), function(i) as.numeric(time_pvalue[,i])[which(as.numeric(time_cor[,i])==max(as.numeric(time_cor[,i])))])
+names(time_max) <- time_ident
+```
+
+```{r}
+denyer@meta.data$timezone.ID.P <- as.character(time_ident)
+denyer@meta.data$timezone.cor.P <- time_max
+denyer@meta.data$timezone.pvalue.P <- time_maxp
+```
+
+```{r}
+timezone <- DimPlot(denyer, reduction = "umap", group.by = "timezone.ID.P")+ggtitle("Correlation-based timezone annotation")
+```
+
+```{r}
+timezone
+ploidyplot
+```
+
+Save object 
+
+```{r}
+SaveH5Seurat(denyer, filename = "../intermediate_files/denyer_wt_sctransform_annotated.h5seurat")
+```
+
+
+
+
