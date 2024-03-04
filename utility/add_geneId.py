@@ -11,8 +11,8 @@ corrected_file = "Lotus_japonicus_corrected.fa"
 with open(original_file) as original, open(corrected_file, 'w') as corrected:
     records = SeqIO.parse(original_file, 'fasta')
     for record in records:
-        print(record.id)         
+        #print(record.id)         
         geneId = (record.id).split('.')[0]
         record.description = "gene:" + str(geneId)
-        print(record.id) 
+        #print(record.description) 
         SeqIO.write(record, corrected, 'fasta')
