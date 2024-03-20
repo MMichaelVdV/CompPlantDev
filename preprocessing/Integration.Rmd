@@ -1,0 +1,285 @@
+---
+title: 'Integration'
+author: 'Maud Van Ginneken'
+output:
+  pdf_document:
+    number_sections: yes
+    keep_tex: yes
+  html_document:
+    df_print: paged
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE, warning = FALSE, 
+                      message = FALSE, echo = FALSE, eval = TRUE, tidy = TRUE,
+                      fig.width = 6, fig.height = 3.5, purl = TRUE, 
+                      fig.show = "hold", fig.pos = "p")
+```
+
+```{r}
+#remotes::install_github("mojaveazure/seurat-disk")
+library("Seurat")
+#library("SeuratDisk")
+```
+
+```{r}
+# Raw data gebruiken 
+# Seurat object genereren 
+# Normaliseren + scalen 
+
+common_genes <- intersect(rownames(AT_root), rownames(LJ_root))
+
+subset.matrix <- LJ_root@assays[["RNA"]]@counts[common_genes, ] # Pull the expression matrix from the original Seurat object containing only the genes of interest
+
+LJ_root_ortho <- CreateSeuratObject(subset.matrix) # Create a new Seurat object with just the genes of interest
+
+LJ_root_ortho <- NormalizeData(LJ_root_ortho)
+all_genes_LJ <- rownames(LJ_root_ortho)
+LJ_root_ortho <- ScaleData(LJ_root_ortho, features = all_genes_LJ)
+
+#AddMetaData naar LJ_root, ploïdie uit LJ_root_ortho (Idents)
+orig.ident <- AT_root@meta.data # Pull the identities from the original Seurat object as a data.frame
+
+counts_AT_ <- as.matrix(AT_root@assays[["RNA"]]@layers[["counts"]])
+rownames(counts_AT_) <- all_genes_AT
+
+subset.matrix <- counts_AT_[common_genes, ] # Pull the expression matrix from the original Seurat object containing only the genes of interest
+
+#subset.matrix <- AT_root@assays[["RNA"]]@counts[common_genes, ]
+
+AT_root_ortho <- CreateSeuratObject(subset.matrix) # Create a new Seurat object with just the genes of interest
+
+AT_root_ortho <- NormalizeData(AT_root_ortho)
+all_genes_AT <- rownames(AT_root_ortho)
+AT_root_ortho <- ScaleData(AT_root_ortho, features = all_genes_AT)
+
+AT_root_ortho <- AddMetaData(object = AT_root_ortho, metadata = orig.ident) # Add the idents to the meta.data slot
+
+Idents(object = AT_root_ortho) <- AT_root@active.ident # Assign identities for the new Seurat object
+```
+
+```{r}
+#common_genes <- intersect(rownames(AT_root), rownames(LJ_root))
+#AT_root <- AT_root[, common_genes]
+#LJ_root <- LJ_root[, common_genes]
+```
+
+```{r}
+AT_root_ortho <- FindVariableFeatures(AT_root_ortho, nfeatures = 5000)
+AT_root_ortho <- RunPCA(AT_root_ortho, npcs = 100, features = VariableFeatures(object = AT_root_ortho))
+AT_root_ortho <- RunUMAP(AT_root_ortho, dims = 1:60, reduction.name = "umap60")
+AT_root_ortho$celltype.id <- as.vector(AT_root@active.ident)
+DimPlot(AT_root_ortho, reduction = "pca", cols = "black")
+DimPlot(AT_root_ortho, reduction = "umap60", cols = "black")
+DimPlot(AT_root_ortho, reduction = "pca", group.by = "celltype.id")
+DimPlot(AT_root_ortho, reduction = "umap60", group.by = "celltype.id")
+```
+# Take one cluster of LJ as subset for annotation
+
+```{r}
+LJ_root_ortho <- FindVariableFeatures(LJ_root_ortho, nfeatures = 2000)
+LJ_root_ortho <- RunPCA(LJ_root_ortho, npcs = 60, verbose = FALSE)
+LJ_root_ortho <- RunUMAP(LJ_root_ortho, reduction = "pca", dims = 1:60)
+LJ_root_ortho <- FindNeighbors(LJ_root_ortho, reduction = "pca", dims = 1:60)
+LJ_root_ortho <- FindClusters(LJ_root_ortho, resolution = 0.5)
+```
+
+```{r}
+DimPlot(LJ_root_ortho, reduction = "umap")
+```
+
+
+```{r}
+LJ_root_ortho <- subset(x = LJ_root_ortho, idents = "0")
+```
+
+
+# Label transfer
+
+```{r}
+AT_anchors <- FindTransferAnchors(reference = AT_root, query = LJ_root_ortho, 
+    dims = 1:30, features = common_genes, reduction = "pcaproject", max.features = 500, k.anchor = 50)
+# You can increase the strength of alignment by increasing the k.anchor parameter, which is set to 5 by default. Increasing this parameter to 20 will assist in aligning these populations.
+#k.score = 10
+#methods: pcaproject, rpca, cca
+#project.query = TRUE
+#k.filter = NA
+#reference.reduction = umap60
+```
+
+# Ploïdy
+```{r}
+predictions <- TransferData(anchorset = AT_anchors, refdata = AT_root$ploidy.ID.P, dims = 1:30)
+#k.weight = 30
+#weight.reduction = "cca"
+#weight.reduction = "rpca.query"
+LJ_root_ortho <- AddMetaData(LJ_root_ortho, metadata = predictions)
+```
+
+```{r}
+LJ_root <- AddMetaData(object = LJ_root, metadata = LJ_root_ortho@meta.data) 
+Idents(object = LJ_root) <- LJ_root_ortho@meta.data[["predicted.id"]] 
+```
+
+```{r fig.height = 16 fig.width = 16}
+#options(repr.plot.width=16, repr.plot.height=16)
+order <- c("2C","4C","8C","16C","unknown")
+palette <- c("#DCEDC8","#42B3D5","#FDEA6F","#CF4F29","#cccccc")
+
+LJ_root$predicted.id <- factor(LJ_root$predicted.id, levels=order[sort(match(unique(LJ_root$predicted.id), order))])
+color <- palette
+
+ploidyplot <- DimPlot(LJ_root, group.by="predicted.id", cols=color, reduction = 'umap60', dims = c(1,2)) + labs(x = "", y = "", title = "Ploidy levels")
+
+#pdf(file = "ploidyplot.pdf", width = 16, height = 16)
+ploidyplot
+#dev.off()
+```
+
+# Timezones 
+
+```{r}
+predictions <- TransferData(anchorset = AT_anchors, refdata = AT_root$timezone.ID.P, 
+    dims = 1:30)
+LJ_root_ortho <- AddMetaData(LJ_root_ortho, metadata = predictions)
+```
+```{r}
+LJ_root <- AddMetaData(object = LJ_root, metadata = LJ_root_ortho@meta.data) 
+Idents(object = LJ_root) <- LJ_root_ortho@meta.data[["predicted.id"]] 
+```
+
+```{r}
+timezone <- DimPlot(LJ_root, reduction = "umap60", group.by = "predicted.id")+ggtitle("Correlation-based timezone annotation")
+
+timezone
+```
+
+# Cell types 
+
+```{r}
+AT_root$celltype.id <- as.vector(AT_root@active.ident)
+predictions <- TransferData(anchorset = AT_anchors, refdata = AT_root$celltype.id, 
+    dims = 1:30)
+LJ_root_ortho <- AddMetaData(LJ_root_ortho, metadata = predictions)
+```
+
+```{r}
+LJ_root <- AddMetaData(object = LJ_root, metadata = LJ_root_ortho@meta.data) 
+Idents(object = LJ_root) <- LJ_root_ortho@meta.data[["predicted.id"]] 
+```
+
+```{r}
+celltype <- DimPlot(LJ_root, reduction = "umap60", group.by = "predicted.id")+ggtitle("Cell type annotation")
+celltype
+DimPlot(AT_root, reduction = "umap60", group.by = "celltype.id")
+```
+
+# CCA integration (https://satijalab.org/seurat/articles/integration_mapping)
+
+```{r}
+AT_root_ortho$celltype.id <- as.vector(AT_root@active.ident)
+```
+
+
+```{r}
+compSC.combined <- merge(AT_root_ortho, y = LJ_root_ortho, add.cell.ids = c("AT", "LJ"), project = "CompSC", merge.data = TRUE)
+```
+
+```{r}
+compSC.combined <- FindVariableFeatures(compSC.combined)
+compSC.combined <- ScaleData(compSC.combined)
+compSC.combined <- RunPCA(compSC.combined)
+compSC.combined <- FindNeighbors(compSC.combined, dims = 1:30)
+compSC.combined <- FindClusters(compSC.combined)
+```
+
+```{r}
+compSC.combined <- RunUMAP(compSC.combined, dims = 1:30)
+DimPlot(compSC.combined)
+DimPlot(compSC.combined, group.by = "orig.ident")
+DimPlot(compSC.combined, group.by = "celltype.id")
+```
+
+```{r}
+compSC.combined <- IntegrateLayers(object = compSC.combined, method = CCAIntegration, orig.reduction = "pca",
+    new.reduction = "integrated.cca", verbose = FALSE, k.anchor = 5)
+compSC.combined <- FindNeighbors(compSC.combined, reduction = "integrated.cca", dims = 1:30)
+compSC.combined <- FindClusters(compSC.combined)
+```
+
+```{r}
+compSC.combined <- RunUMAP(compSC.combined, reduction = "integrated.cca", dims = 1:30)
+DimPlot(compSC.combined)
+DimPlot(compSC.combined, group.by = "orig.ident")
+DimPlot(compSC.combined, group.by = "celltype.id")
+```
+# Unimodal UMAP Projection (https://satijalab.org/seurat/articles/integration_mapping)
+
+```{r}
+AT_root <- RunUMAP(AT_root, dims = 1:30, return.model = TRUE) #reduction = "integrated.cca",
+LJ_root_ortho <- MapQuery(anchorset = AT_anchors, reference = AT_root, query = LJ_root_ortho,
+    refdata = list(celltype = "celltype.id"), reference.reduction = "pca", reduction.model = "umap")
+```
+
+```{r}
+p1 <- DimPlot(AT_root, reduction = "umap", group.by = "celltype.id", label = TRUE, label.size = 3,
+    repel = TRUE) + NoLegend() + ggtitle("Reference annotations")
+p2 <- DimPlot(LJ_root_ortho, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE,
+    label.size = 3, repel = TRUE) + NoLegend() + ggtitle("Query transferred labels")
+p1 + p2
+```
+
+# RPCA inetgration (https://satijalab.org/seurat/articles/integration_rpca)
+
+```{r}
+# split the dataset into a list of two seurat objects
+compSC.list <- SplitObject(compSC.combined, split.by = "orig.ident")
+names(compSC.list) <- c("AT_root", "LJ_root")
+
+# normalize and identify variable features for each dataset independently
+compSC.list <- lapply(X = compSC.list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration run PCA on each
+# dataset using these features
+features <- SelectIntegrationFeatures(object.list = compSC.list)
+compSC.list <- lapply(X = compSC.list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = FALSE)
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+
+```{r}
+compSC.anchors <- FindIntegrationAnchors(object.list = compSC.list, anchor.features = features, reduction = "rpca", k.anchor = 5)
+```
+
+```{r}
+# this command creates an 'integrated' data assay
+compSC.combined <- IntegrateData(anchorset = compSC.anchors) # k.weight = 50
+```
+
+```{r}
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(compSC.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+compSC.combined <- ScaleData(compSC.combined, verbose = FALSE)
+compSC.combined <- RunPCA(compSC.combined, npcs = 30, verbose = FALSE)
+compSC.combined <- RunUMAP(compSC.combined, reduction = "pca", dims = 1:30)
+compSC.combined <- FindNeighbors(compSC.combined, reduction = "pca", dims = 1:30)
+compSC.combined <- FindClusters(compSC.combined, resolution = 0.5)
+```
+
+```{r fig.width=15}
+# Visualization
+p1 <- DimPlot(compSC.combined, reduction = "umap", group.by = "orig.ident")
+p2 <- DimPlot(compSC.combined, reduction = "umap", group.by = "celltype.id", label = TRUE,
+    repel = TRUE)
+p1 + p2
+```
+
